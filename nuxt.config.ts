@@ -1,8 +1,8 @@
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: [],
-
-  css: ['~/assets/css/tailwind.css'],
+  modules: [
+    '@nuxtjs/tailwindcss'
+  ],
 
   runtimeConfig: {
     public: {
@@ -22,10 +22,5 @@ export default defineNuxtConfig({
     }
   },
 
-  postcss: {
-    plugins: {
-      tailwindcss: {},
-      autoprefixer: {},
-    },
-  },
+  compatibilityDate: '2025-02-01'
 })
