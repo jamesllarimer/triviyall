@@ -29,10 +29,26 @@
 
       <div class="flex justify-center space-x-4">
         <button
-          @click="shareResults"
+          v-if="canNativeShare"
+          @click="nativeShare"
           class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
         >
-          Share Results
+          <span class="mr-2">Share</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+          </svg>
+        </button>
+        
+        <button
+          v-else
+          @click="copyToClipboard"
+          class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          <span class="mr-2">Copy Results</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+          </svg>
         </button>
         
         <button
@@ -47,7 +63,7 @@
       <div v-if="showShareSuccess" 
         class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-md text-sm"
       >
-        Results copied to clipboard!
+        {{ shareSuccessMessage }}
       </div>
     </div>
 
@@ -68,10 +84,10 @@
         <!-- Options -->
         <div class="space-y-3">
           <button
-            v-for="option in currentQuestion.options"
+            v-for="option in shuffledOptions"
             :key="option"
             :disabled="answerSubmitted"
-            @click="submitAnswer(option)"
+            @click="selectOption(option)"
             :class="[
               'w-full text-left px-4 py-3 rounded-md text-base font-medium transition-colors',
               getOptionClasses(option)
@@ -80,10 +96,20 @@
             {{ option }}
           </button>
         </div>
+
+        <!-- Submit Answer Button -->
+        <div v-if="selectedOption && !answerSubmitted" class="mt-4">
+          <button
+            @click="submitAnswer"
+            class="w-full inline-flex justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            Lock In Answer
+          </button>
+        </div>
       </div>
 
       <!-- Next Question Button -->
-      <div v-if="answerSubmitted && !gameComplete" class="flex justify-end">
+      <div v-if="answerSubmitted && !gameComplete" class="flex justify-end mt-4">
         <button
           @click="nextQuestion"
           class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
@@ -107,30 +133,61 @@ const score = ref(0)
 const answerSubmitted = ref(false)
 const gameComplete = ref(false)
 const showShareSuccess = ref(false)
+const shareSuccessMessage = ref('')
+const canNativeShare = ref(false)
+
+// Check if the Web Share API is available
+onMounted(() => {
+  canNativeShare.value = !!navigator.share
+})
 const answerResults = ref<boolean[]>([])
 const gameDate = ref('')
+const selectedOption = ref<string | null>(null)
+const optionsOrder = ref<string[]>([])
 
 // Computed
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || {})
 
+const shuffledOptions = computed(() => {
+  if (!currentQuestion.value.options) return []
+  if (optionsOrder.value.length === 0) {
+    // Only shuffle when we move to a new question
+    optionsOrder.value = [...currentQuestion.value.options].sort(() => Math.random() - 0.5)
+  }
+  return optionsOrder.value
+})
+
 // Methods
 const getOptionClasses = (option: string) => {
   if (!answerSubmitted.value) {
+    if (option === selectedOption.value) {
+      return 'bg-blue-100 border-2 border-blue-400'
+    }
     return 'bg-gray-50 hover:bg-gray-100'
   }
 
   if (option === currentQuestion.value.correct_answer) {
-    return 'bg-green-100 text-green-800'
+    return 'bg-green-100 text-green-800 border-2 border-green-400'
+  }
+
+  if (option === selectedOption.value) {
+    return 'bg-red-100 text-red-800 border-2 border-red-400'
   }
 
   return 'bg-gray-50 opacity-50'
 }
 
-const submitAnswer = (selectedAnswer: string) => {
-  if (answerSubmitted.value) return
+const selectOption = (option: string) => {
+  if (!answerSubmitted.value) {
+    selectedOption.value = option
+  }
+}
+
+const submitAnswer = () => {
+  if (answerSubmitted.value || !selectedOption.value) return
 
   answerSubmitted.value = true
-  const isCorrect = selectedAnswer === currentQuestion.value.correct_answer
+  const isCorrect = selectedOption.value === currentQuestion.value.correct_answer
   if (isCorrect) {
     score.value++
   }
@@ -157,15 +214,19 @@ const generateShareText = () => {
   const results = answerResults.value
     .map(result => result ? '🟩' : '🟥')
     .join('')
-
-  return `TriviYall ${dateStr}\n${score.value}/${questions.value.length}\n\n${results}`
+    
+  // Get the base URL from the current window location
+  const baseUrl = window.location.origin
+  
+  return `TriviYall ${dateStr}\n${score.value}/${questions.value.length}\n\n${results}\n\nPlay today's TriviYall at ${baseUrl}`
 }
 
-const shareResults = async () => {
+const copyToClipboard = async () => {
   const text = generateShareText()
   
   try {
     await navigator.clipboard.writeText(text)
+    shareSuccessMessage.value = 'Results copied to clipboard!'
     showShareSuccess.value = true
     setTimeout(() => {
       showShareSuccess.value = false
@@ -173,6 +234,30 @@ const shareResults = async () => {
   } catch (err) {
     console.error('Failed to copy:', err)
     alert('Failed to copy results to clipboard')
+  }
+}
+
+const nativeShare = async () => {
+  const text = generateShareText()
+  const shareData = {
+    title: 'TriviYall Results',
+    text: text,
+    url: window.location.origin
+  }
+
+  try {
+    await navigator.share(shareData)
+    shareSuccessMessage.value = 'Shared successfully!'
+    showShareSuccess.value = true
+    setTimeout(() => {
+      showShareSuccess.value = false
+    }, 2000)
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.error('Error sharing:', err)
+      // Fallback to clipboard
+      await copyToClipboard()
+    }
   }
 }
 
