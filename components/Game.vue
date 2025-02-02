@@ -148,15 +148,15 @@ const optionsOrder = ref<string[]>([])
 // Computed
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || {})
 
-const shuffledOptions = computed(() => {
-  const question = currentQuestion.value
+// Methods
+const getShuffledOptions = (question: any) => {
   if (!question?.options) return []
-  
-  // If options haven't been shuffled for this question yet, shuffle them
-  if (optionsOrder.value.length === 0) {
-    optionsOrder.value = [...question.options].sort(() => Math.random() - 0.5)
-  }
-  return optionsOrder.value
+  // Always create a new shuffled array for the current question
+  return [...question.options].sort(() => Math.random() - 0.5)
+}
+
+const shuffledOptions = computed(() => {
+  return getShuffledOptions(currentQuestion.value)
 })
 
 // Methods
