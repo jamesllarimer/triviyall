@@ -149,10 +149,12 @@ const optionsOrder = ref<string[]>([])
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || {})
 
 const shuffledOptions = computed(() => {
-  if (!currentQuestion.value.options) return []
+  const question = currentQuestion.value
+  if (!question?.options) return []
+  
+  // If options haven't been shuffled for this question yet, shuffle them
   if (optionsOrder.value.length === 0) {
-    // Only shuffle when we move to a new question
-    optionsOrder.value = [...currentQuestion.value.options].sort(() => Math.random() - 0.5)
+    optionsOrder.value = [...question.options].sort(() => Math.random() - 0.5)
   }
   return optionsOrder.value
 })
@@ -273,6 +275,7 @@ const restartGame = () => {
 const fetchQuestions = async () => {
   try {
     loading.value = true
+    optionsOrder.value = [] // Reset options order
 
     // Get current date and day of week (1-7, Monday = 1)
     const now = new Date()
