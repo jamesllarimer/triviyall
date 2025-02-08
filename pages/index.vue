@@ -1,20 +1,19 @@
-# pages/index.vue
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-    <h1 class="text-4xl font-bold text-gray-900 mb-8">TriviYall</h1>
+  <div class="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col items-center justify-center p-4">
+    <h1 class="text-4xl font-bold text-white mb-8 drop-shadow-lg">TriviYall</h1>
     
     <div v-if="!gameStarted" class="text-center">
-      <p class="text-xl text-gray-600 mb-6">Ready to test your knowledge?</p>
+      <p class="text-xl text-white mb-6 drop-shadow">Ready to test your knowledge?</p>
       <button
         @click="gameStarted = true"
-        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        class="inline-flex items-center px-6 py-3 border-2 border-white text-base font-medium rounded-full shadow-lg text-white bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
       >
         Start TriviYall
       </button>
       
       <NuxtLink
         to="/dashboard"
-        class="block mt-4 text-sm text-gray-500 hover:text-gray-700"
+        class="block mt-4 text-sm text-white hover:text-orange-200 transition-colors duration-200"
       >
         Admin Dashboard
       </NuxtLink>

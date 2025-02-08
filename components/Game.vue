@@ -2,7 +2,7 @@
 <template>
   <div class="w-full max-w-2xl">
     <!-- Debug Date Selector (dev only) -->
-    <div v-if="isDevelopment" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+    <div v-if="isDevelopment" class="mb-4 p-4 bg-orange-100 border border-orange-200 rounded-lg">
       <h3 class="text-sm font-medium text-yellow-800 mb-2">Debug Mode</h3>
       <div class="flex items-center space-x-4">
         <input
@@ -27,7 +27,7 @@
 
     <!-- Loading State -->
     <div v-else-if="loading" class="text-center">
-      <h2 class="text-3xl font-bold text-indigo-600 animate-bounce">
+      <h2 class="text-3xl font-bold text-white animate-bounce drop-shadow-lg">
         Get Reeeaaaadyyy!
       </h2>
     </div>
@@ -38,7 +38,7 @@
       <div class="flex justify-end mb-4">
         <button
           @click="toggleSound"
-          class="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
+          class="flex items-center space-x-2 text-sm text-white hover:text-orange-200 transition-colors duration-200"
         >
           <span v-if="soundEnabled">🔊</span>
           <span v-else>🔇</span>
@@ -47,8 +47,8 @@
       </div>
 
       <!-- Game Complete State -->
-      <div v-if="gameComplete" class="text-center space-y-6">
-        <h2 class="text-2xl font-bold text-gray-900">Game Complete!</h2>
+      <div v-if="gameComplete" class="text-center space-y-6 bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-xl">
+        <h2 class="text-2xl font-bold text-orange-600">Game Complete!</h2>
         <div class="text-lg text-gray-600">
           You got {{ score }} out of {{ questions.length }} correct!
         </div>
@@ -57,7 +57,7 @@
         <div class="flex justify-center space-x-1 my-4">
           <div v-for="(result, index) in answerResults" :key="index"
             class="w-8 h-8 flex items-center justify-center rounded"
-            :class="result ? 'bg-green-500' : 'bg-red-500'"
+            :class="result ? 'bg-green-500' : 'bg-orange-500'"
           >
             <span class="text-white font-bold">
               {{ result ? '✓' : '✗' }}
@@ -69,7 +69,7 @@
           <button
             v-if="canNativeShare"
             @click="nativeShare"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
           >
             <span class="mr-2">Share</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -80,7 +80,7 @@
           <button
             v-else
             @click="copyToClipboard"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
           >
             <span class="mr-2">Copy Results</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -91,7 +91,7 @@
           
           <button
             @click="restartGame"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            class="inline-flex items-center px-6 py-3 border-2 border-orange-500 text-base font-medium rounded-full shadow-sm text-orange-500 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
           >
             Play Again
           </button>
@@ -108,14 +108,14 @@
       <!-- Question Display -->
       <div v-else class="space-y-6">
         <!-- Progress -->
-        <div class="flex justify-between items-center text-sm text-gray-500">
+        <div class="flex justify-between items-center text-sm text-white">
           <span>Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}</span>
           <span>Score: {{ score }}</span>
         </div>
 
         <!-- Question -->
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-medium text-gray-900 mb-4">
+        <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-lg p-6">
+          <h2 class="text-xl font-medium text-orange-600 mb-4">
             {{ currentQuestion.question }}
           </h2>
 
@@ -127,7 +127,7 @@
               :disabled="answerSubmitted"
               @click="selectOption(option)"
               :class="[
-                'w-full text-left px-4 py-3 rounded-md text-base font-medium transition-colors',
+                'w-full text-left px-4 py-3 rounded-lg text-base font-medium transition-all duration-200',
                 getOptionClasses(option)
               ]"
             >
@@ -139,7 +139,7 @@
           <div v-if="selectedOption && !answerSubmitted" class="mt-4">
             <button
               @click="submitAnswer"
-              class="w-full inline-flex justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              class="w-full inline-flex justify-center px-4 py-2 border border-transparent text-base font-medium rounded-full text-white bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
             >
               Lock In Answer
             </button>
@@ -150,7 +150,7 @@
         <div v-if="answerSubmitted && !gameComplete" class="flex justify-end mt-4">
           <button
             @click="nextQuestion"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            class="inline-flex items-center px-4 py-2 border-2 border-white text-base font-medium rounded-full text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-all duration-200"
           >
             Next Question
           </button>
@@ -224,9 +224,9 @@ const shuffledOptions = computed(() => {
 const getOptionClasses = (option: string) => {
   if (!answerSubmitted.value) {
     if (option === selectedOption.value) {
-      return 'bg-blue-100 border-2 border-blue-400'
+      return 'bg-orange-100 border-2 border-orange-400 text-orange-600'
     }
-    return 'bg-gray-50 hover:bg-gray-100'
+    return 'bg-white hover:bg-orange-50 border-2 border-transparent hover:border-orange-300'
   }
 
   if (option === currentQuestion.value.correct_answer) {
@@ -234,10 +234,10 @@ const getOptionClasses = (option: string) => {
   }
 
   if (option === selectedOption.value) {
-    return 'bg-red-100 text-red-800 border-2 border-red-400'
+    return 'bg-orange-100 text-orange-800 border-2 border-orange-400'
   }
 
-  return 'bg-gray-50 opacity-50'
+  return 'bg-white/50 opacity-50 border-2 border-transparent'
 }
 
 const selectOption = (option: string) => {
