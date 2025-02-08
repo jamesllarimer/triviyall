@@ -8,7 +8,7 @@
         @click="gameStarted = true"
         class="inline-flex items-center px-6 py-3 border-2 border-white text-base font-medium rounded-full shadow-lg text-white bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
       >
-        Start TriviYall
+        Start Trivi-Ya'll
       </button>
       
       <NuxtLink
