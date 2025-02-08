@@ -16,17 +16,29 @@
               <div>
                 <div class="flex justify-between items-center mb-4">
                   <h4 class="text-base font-medium text-gray-900">Select Questions (5 required)</h4>
-                  <div class="flex items-center space-x-2">
-                    <label class="text-sm text-gray-700">Filter by Category:</label>
-                    <select
-                      v-model="selectedCategory"
-                      class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    >
-                      <option value="">All Categories</option>
-                      <option v-for="category in categories" :key="category.id" :value="category.id">
-                        {{ category.name }}
-                      </option>
-                    </select>
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                      <label class="text-sm text-gray-700">Filter by Category:</label>
+                      <select
+                        v-model="selectedCategory"
+                        class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      >
+                        <option value="">All Categories</option>
+                        <option v-for="category in categories" :key="category.id" :value="category.id">
+                          {{ category.name }}
+                        </option>
+                      </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <label class="text-sm text-gray-700">Availability:</label>
+                      <select
+                        v-model="availabilityFilter"
+                        class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      >
+                        <option value="all">All Questions</option>
+                        <option value="available">Available Only</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -116,6 +128,7 @@ const emit = defineEmits(['update:modelValue', 'save'])
 const isEditing = computed(() => !!props.editingSet)
 const selectedCategory = ref('')
 const selectedQuestions = ref<string[]>([])
+const availabilityFilter = ref('available')  // Changed from 'all' to 'available'
 
 const isValid = computed(() => {
   return selectedQuestions.value.length === 5
@@ -125,6 +138,9 @@ const filteredQuestions = computed(() => {
   let filtered = props.questions
   if (selectedCategory.value) {
     filtered = filtered.filter(q => q.category_id === selectedCategory.value)
+  }
+  if (availabilityFilter.value === 'available') {
+    filtered = filtered.filter(q => q.is_available)
   }
   return filtered
 })
