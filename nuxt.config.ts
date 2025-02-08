@@ -5,10 +5,11 @@ export default defineNuxtConfig({
   ],
 
   runtimeConfig: {
+    claudeApiKey: process.env.CLAUDE_API_KEY, // Move to private server config
     public: {
       appName: 'TriviYall',
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL,
-      supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY
+      supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY,
     }
   },
 

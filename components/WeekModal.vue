@@ -104,8 +104,8 @@ const form = ref({
   autoCreateSets: true  // Default to true for convenience
 })
 
-const selectedSets = ref<Record<number, string>>({
-  1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: ''
+const selectedSets = ref<Record<string, string>>({
+  '1': '', '2': '', '3': '', '4': '', '5': '', '6': '', '7': ''
 })
 
 // Helper function to get preview of questions in a set
@@ -140,7 +140,8 @@ const availableSets = (dayNumber: number) => {
 watchEffect(() => {
   if (props.editingWeek) {
     form.value = { 
-      start_date: props.editingWeek.start_date
+      start_date: props.editingWeek.start_date,
+      autoCreateSets: false
     }
     
     // Get current set assignments
@@ -153,7 +154,8 @@ watchEffect(() => {
     })
   } else {
     form.value = {
-      start_date: ''
+      start_date: '',
+      autoCreateSets: true
     }
     // Reset set selections
     Object.keys(selectedSets.value).forEach(day => {
