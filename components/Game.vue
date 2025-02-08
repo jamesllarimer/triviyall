@@ -1,6 +1,24 @@
 <!-- components/Game.vue -->
 <template>
   <div class="w-full max-w-2xl">
+    <!-- Debug Date Selector (dev only) -->
+    <div v-if="isDevelopment" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <h3 class="text-sm font-medium text-yellow-800 mb-2">Debug Mode</h3>
+      <div class="flex items-center space-x-4">
+        <input
+          type="date"
+          v-model="debugDate"
+          class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        />
+        <button
+          @click="fetchQuestions"
+          class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm hover:bg-yellow-200"
+        >
+          Test Date
+        </button>
+      </div>
+    </div>
+
     <!-- Content Warning -->
     <ContentWarning 
       v-if="!gameStarted" 
@@ -178,6 +196,10 @@ const selectedOption = ref<string | null>(null)
 // Computed
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || {})
 
+// Add new state variables
+const isDevelopment = process.dev // Nuxt provides this
+const debugDate = ref(new Date().toISOString().split('T')[0])
+
 // Methods
 const startGame = async (enableSound: boolean) => {
   console.log('Game starting with sound:', enableSound)
@@ -320,20 +342,24 @@ const restartGame = () => {
   fetchQuestions()
 }
 
+// Modify fetchQuestions to use debug date when available
 const fetchQuestions = async () => {
   try {
     console.log('Fetching questions...')
     loading.value = true
 
-    const now = new Date()
-    const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay()
-    console.log('Current day of week:', dayOfWeek)
+    // Use debug date in development mode, or current date in production
+    const targetDate = isDevelopment ? new Date(debugDate.value) : new Date()
+    const dayOfWeek = targetDate.getDay() === 0 ? 7 : targetDate.getDay()
     
+    console.log('Target date:', targetDate.toISOString())
+    console.log('Day of week:', dayOfWeek)
+    
+    // First, get the current active week
     const { data: weekData, error: weekError } = await supabase
       .from('weeks')
       .select('id')
-      .eq('status', 'active')
-      .lte('start_date', now.toISOString().split('T')[0])
+      .lte('start_date', targetDate.toISOString().split('T')[0])
       .order('start_date', { ascending: false })
       .limit(1)
       .single()
@@ -342,6 +368,7 @@ const fetchQuestions = async () => {
     if (weekError) throw weekError
     if (!weekData) throw new Error('No active week found')
 
+    // Then, get the question set for today
     const { data: setData, error: setError } = await supabase
       .from('question_sets')
       .select('id')
@@ -353,6 +380,7 @@ const fetchQuestions = async () => {
     if (setError) throw setError
     if (!setData) throw new Error('No question set found for today')
 
+    // Get questions for this set
     const { data: questionData, error: questionError } = await supabase
       .from('questions')
       .select('*')
@@ -360,14 +388,21 @@ const fetchQuestions = async () => {
 
     console.log('Question data:', questionData)
     if (questionError) throw questionError
+    if (!questionData?.length) throw new Error('No questions found for today')
+    if (questionData.length !== 5) throw new Error(`Invalid number of questions: ${questionData.length} (expected 5)`)
     
-    questions.value = questionData || []
-    gameDate.value = now.toISOString()
+    // Transform the questions to handle jsonb options field
+    questions.value = questionData.map(q => ({
+      ...q,
+      options: Array.isArray(q.options) ? q.options : JSON.parse(q.options)
+    }))
+    
+    gameDate.value = targetDate.toISOString()
     
     await new Promise(resolve => setTimeout(resolve, 1500))
   } catch (error) {
     console.error('Error fetching questions:', error)
-    alert('Error loading questions')
+    alert('Error loading questions: ' + (error instanceof Error ? error.message : 'Unknown error'))
   } finally {
     console.log('Loading complete')
     loading.value = false
