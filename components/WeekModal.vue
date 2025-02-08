@@ -23,8 +23,23 @@
                 <p class="mt-1 text-sm text-gray-500">Choose the Monday that starts this week</p>
               </div>
 
-              <!-- Daily Set Assignment -->
-              <div class="space-y-4">
+              <!-- Auto Create Sets Toggle -->
+              <div class="relative flex items-start">
+                <div class="flex items-center h-5">
+                  <input
+                    type="checkbox"
+                    v-model="form.autoCreateSets"
+                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+                <div class="ml-3 text-sm">
+                  <label class="font-medium text-gray-700">Automatically create question sets</label>
+                  <p class="text-gray-500">Creates new sets with available questions for each day</p>
+                </div>
+              </div>
+
+              <!-- Daily Set Assignment (show only if not auto-creating) -->
+              <div v-if="!form.autoCreateSets" class="space-y-4">
                 <h4 class="text-sm font-medium text-gray-700">Assign Question Sets to Days</h4>
                 <div v-for="(day, index) in days" :key="day" class="grid grid-cols-1 gap-2">
                   <div class="flex items-center justify-between">
@@ -85,7 +100,8 @@ const isEditing = computed(() => !!props.editingWeek)
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 const form = ref({
-  start_date: ''
+  start_date: '',
+  autoCreateSets: true  // Default to true for convenience
 })
 
 const selectedSets = ref<Record<number, string>>({
@@ -149,7 +165,7 @@ watchEffect(() => {
 const handleSubmit = () => {
   emit('save', {
     ...form.value,
-    setAssignments: Object.entries(selectedSets.value).map(([day, setId]) => ({
+    setAssignments: form.value.autoCreateSets ? [] : Object.entries(selectedSets.value).map(([day, setId]) => ({
       day_number: parseInt(day),
       set_id: setId || null
     }))

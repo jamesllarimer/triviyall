@@ -516,13 +516,13 @@ const saveCategory = async (categoryData: any) => {
 
 const saveWeek = async (weekData: any) => {
   const supabase = useSupabase()
-  const { setAssignments, ...weekDetails } = weekData
+  const { setAssignments, autoCreateSets, ...weekDetails } = weekData
 
   try {
     let weekId: string
 
+    // Create or update week
     if (editingWeek.value) {
-      // Update existing week
       const { data, error } = await supabase
         .from('weeks')
         .update(weekDetails)
@@ -531,14 +531,7 @@ const saveWeek = async (weekData: any) => {
 
       if (error) throw error
       weekId = editingWeek.value.id
-
-      // Update local state
-      const index = weeks.value.findIndex(w => w.id === editingWeek.value.id)
-      if (index !== -1) {
-        weeks.value[index] = data[0]
-      }
     } else {
-      // Create new week
       const { data, error } = await supabase
         .from('weeks')
         .insert(weekDetails)
@@ -546,34 +539,77 @@ const saveWeek = async (weekData: any) => {
 
       if (error) throw error
       weekId = data[0].id
-
-      // Add to local state
-      weeks.value.push(data[0])
     }
 
-    // First, clear any existing set assignments for this week
-    const { error: clearError } = await supabase
-      .from('question_sets')
-      .update({
-        week_id: null,
-        day_number: null
-      })
-      .eq('week_id', weekId)
+    if (autoCreateSets) {
+      // Create new sets for each day
+      for (let dayNumber = 1; dayNumber <= 7; dayNumber++) {
+        // Get 5 available questions randomly - fixed ordering syntax
+        const { data: availableQuestions, error: questionsError } = await supabase
+          .from('available_questions')
+          .select('*')
+          .eq('is_available', true)
+          .limit(100) // Get a larger pool first
+        
+        if (questionsError) throw questionsError
 
-    if (clearError) throw clearError
+        // Manually shuffle and take 5 questions
+        const shuffled = availableQuestions
+          ? availableQuestions
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 5)
+          : []
 
-    // Then update each set with its new assignment
-    for (const { day_number, set_id } of setAssignments) {
-      if (set_id) {  // Only update if a set was selected
-        const { error: updateError } = await supabase
-          .from('question_sets')
-          .update({
-            week_id: weekId,
-            day_number: day_number
-          })
-          .eq('id', set_id)
+        if (shuffled.length === 5) {
+          // Create new question set
+          const { data: newSet, error: setError } = await supabase
+            .from('question_sets')
+            .insert({
+              week_id: weekId,
+              day_number: dayNumber
+            })
+            .select()
+            .single()
 
-        if (updateError) throw updateError
+          if (setError) throw setError
+
+          // Assign questions to the set
+          const { error: updateError } = await supabase
+            .from('questions')
+            .update({ set_id: newSet.id })
+            .in('id', shuffled.map(q => q.id))
+
+          if (updateError) throw updateError
+
+          // Mark questions as used
+          const today = new Date().toISOString().split('T')[0]
+          for (const question of shuffled) {
+            const { error: usageError } = await supabase.rpc(
+              'mark_question_used',
+              { 
+                question_id_param: question.id,
+                used_date_param: today
+              }
+            )
+            
+            if (usageError) throw usageError
+          }
+        }
+      }
+    } else {
+      // Handle manual set assignments
+      for (const { day_number, set_id } of setAssignments) {
+        if (set_id) {  // Only update if a set was selected
+          const { error: updateError } = await supabase
+            .from('question_sets')
+            .update({
+              week_id: weekId,
+              day_number: day_number
+            })
+            .eq('id', set_id)
+
+          if (updateError) throw updateError
+        }
       }
     }
 
