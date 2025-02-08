@@ -12,21 +12,6 @@
             </h3>
             
             <form @submit.prevent="handleSubmit" class="mt-4 space-y-6">
-              <!-- Basic Set Info -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Status</label>
-                <select
-                  v-model="form.status"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                >
-                  <option value="draft">Draft</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
               <!-- Question Selection -->
               <div>
                 <div class="flex justify-between items-center mb-4">
@@ -52,23 +37,35 @@
                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Select</th>
                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Question</th>
                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Last Used</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
                       <tr v-for="question in filteredQuestions" :key="question.id"
-                          :class="{ 'bg-indigo-50': selectedQuestions.includes(question.id) }">
+                          :class="{ 
+                            'bg-indigo-50': selectedQuestions.includes(question.id),
+                            'opacity-50': !question.is_available
+                          }">
                         <td class="whitespace-nowrap px-3 py-4 text-sm">
                           <input
                             type="checkbox"
                             :value="question.id"
                             v-model="selectedQuestions"
-                            :disabled="selectedQuestions.length >= 5 && !selectedQuestions.includes(question.id)"
+                            :disabled="(selectedQuestions.length >= 5 && !selectedQuestions.includes(question.id)) || !question.is_available"
                             class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
                         </td>
-                        <td class="px-3 py-4 text-sm text-gray-900">{{ question.question }}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900">
+                          <div>{{ question.question }}</div>
+                          <div v-if="!question.is_available" class="text-xs text-red-600">
+                            Question recently used
+                          </div>
+                        </td>
                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {{ getCategoryName(question.category_id) }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {{ question.last_used_date ? formatDate(question.last_used_date) : 'Never' }}
                         </td>
                       </tr>
                     </tbody>
@@ -117,12 +114,6 @@ const props = defineProps<{
 const emit = defineEmits(['update:modelValue', 'save'])
 
 const isEditing = computed(() => !!props.editingSet)
-
-const form = ref({
-  status: 'draft',
-  is_auto_generated: false
-})
-
 const selectedCategory = ref('')
 const selectedQuestions = ref<string[]>([])
 
@@ -135,7 +126,7 @@ const filteredQuestions = computed(() => {
   if (selectedCategory.value) {
     filtered = filtered.filter(q => q.category_id === selectedCategory.value)
   }
-  return filtered.filter(q => !q.set_id || (isEditing.value && q.set_id === props.editingSet?.id))
+  return filtered
 })
 
 const getCategoryName = (categoryId: string) => {
@@ -143,28 +134,27 @@ const getCategoryName = (categoryId: string) => {
   return category ? category.name : 'Unknown'
 }
 
+const formatDate = (date: string) => {
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
 watchEffect(() => {
   if (props.editingSet) {
-    form.value = { 
-      status: props.editingSet.status,
-      is_auto_generated: props.editingSet.is_auto_generated 
-    }
     // Get questions assigned to this set
     selectedQuestions.value = props.questions
       .filter(q => q.set_id === props.editingSet.id)
       .map(q => q.id)
   } else {
-    form.value = {
-      status: 'draft',
-      is_auto_generated: false
-    }
     selectedQuestions.value = []
   }
 })
 
 const handleSubmit = () => {
   emit('save', {
-    ...form.value,
     questionIds: selectedQuestions.value
   })
   emit('update:modelValue', false)
