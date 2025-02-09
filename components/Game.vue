@@ -48,20 +48,23 @@
 
       <!-- Game Complete State -->
       <div v-if="gameComplete" class="text-center space-y-6 bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-xl">
-        <h2 class="text-2xl font-bold text-orange-600">Game Complete!</h2>
-        <div class="text-lg text-gray-600">
+        <h2 class="text-2xl font-extrabold text-orange-600 font-display">OHHHHH YEAHHH! Good job hunnies!</h2>
+        <div class="text-lg text-gray-600 font-medium">
           You got {{ score }} out of {{ questions.length }} correct!
         </div>
         
         <!-- Result Pattern -->
-        <div class="flex justify-center space-x-1 my-4">
-          <div v-for="(result, index) in answerResults" :key="index"
-            class="w-8 h-8 flex items-center justify-center rounded"
-            :class="result ? 'bg-green-500' : 'bg-orange-500'"
-          >
-            <span class="text-white font-bold">
-              {{ result ? '✓' : '✗' }}
-            </span>
+        <div class="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
+          <div class="text-sm text-orange-700 mb-3 font-medium">Mayveee share your results:</div>
+          <div class="flex justify-center space-x-1 mb-4">
+            <div v-for="(result, index) in answerResults" :key="index"
+              class="w-8 h-8 flex items-center justify-center rounded-lg transform transition-transform hover:scale-110"
+              :class="result ? 'bg-green-500' : 'bg-orange-500'"
+            >
+              <span class="text-white font-bold text-lg">
+                {{ result ? '✓' : '✗' }}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -69,29 +72,23 @@
           <button
             v-if="canNativeShare"
             @click="nativeShare"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
+            class="inline-flex items-center px-6 py-3 border-2 border-orange-500 text-base font-bold rounded-full shadow-sm text-white bg-orange-500 hover:bg-orange-400 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200 transform hover:scale-105"
           >
-            <span class="mr-2">Share</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-            </svg>
+            <span class="mr-2">Share Your Score</span>
           </button>
           
           <button
             v-else
             @click="copyToClipboard"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-orange-500 hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
+            class="inline-flex items-center px-6 py-3 border-2 border-orange-500 text-base font-bold rounded-full shadow-sm text-white bg-orange-500 hover:bg-orange-400 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200 transform hover:scale-105"
           >
-            <span class="mr-2">Copy Results</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-            </svg>
+            <span class="mr-2">Copy Score</span>
+            <span class="text-xl">📋</span>
           </button>
           
           <button
             @click="restartGame"
-            class="inline-flex items-center px-6 py-3 border-2 border-orange-500 text-base font-medium rounded-full shadow-sm text-orange-500 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200"
+            class="inline-flex items-center px-6 py-3 border-2 border-orange-500 text-base font-bold rounded-full shadow-sm text-orange-500 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-300 transition-all duration-200 transform hover:scale-105"
           >
             Play Again
           </button>
@@ -99,7 +96,7 @@
 
         <!-- Share Success Message -->
         <div v-if="showShareSuccess" 
-          class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white px-4 py-2 rounded-md text-sm"
+          class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white px-6 py-3 rounded-full text-base font-medium shadow-lg"
         >
           {{ shareSuccessMessage }}
         </div>
@@ -341,12 +338,16 @@ const generateShareText = () => {
   })
   
   const results = answerResults.value
-    .map(result => result ? '🟩' : '🟥')
+    .map(result => result ? '🟧' : '⬛')
     .join('')
+  
+  const scoreMsg = score.value === questions.value.length 
+    ? "Totally groovy, perfect score!" 
+    : `${score.value}/${questions.value.length} right on!`
     
   const baseUrl = window.location.origin
   
-  return `TriviYall ${dateStr}\n${score.value}/${questions.length}\n\n${results}\n\nPlay today's TriviYall at ${baseUrl}`
+  return `Hey hunnies! 💫\nCheck out my TriviYa'll score for ${dateStr}!\n\n${scoreMsg}\n${results}\n\n🎲 Come play with us at ${baseUrl}`
 }
 
 const copyToClipboard = async () => {
