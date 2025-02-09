@@ -250,6 +250,10 @@ import SetModal from '../components/SetModal.vue'
 import CategoryModal from '../components/CategoryModal.vue'
 import WeekModal from '../components/WeekModal.vue'
 
+definePageMeta({
+    middleware: ['admin']
+  })
+  
 // State
 const currentTab = ref('weeks')
 const showAddQuestionModal = ref(false)
