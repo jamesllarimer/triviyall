@@ -16,7 +16,25 @@ export const useAuthStore = () => {
 export const useAuth = () => {
   const supabase = useSupabase()
   const router = useRouter()
-  const { user, isAdmin, loading } = useAuthStore()
+  const { user, loading } = useAuthStore()
+
+  const isAdmin = computed(() => {
+    if (!user.value) return false
+    
+    // Check both places where admin role might be stored
+    const hasAdminMetadata = user.value.app_metadata?.role === 'admin'
+    const hasAdminUserMetadata = user.value.user_metadata?.role === 'admin'
+    
+    console.log('Admin check:', {
+      user: user.value,
+      app_metadata: user.value.app_metadata,
+      user_metadata: user.value.user_metadata,
+      hasAdminMetadata,
+      hasAdminUserMetadata
+    })
+    
+    return hasAdminMetadata || hasAdminUserMetadata
+  })
 
   const initAuth = async () => {
     try {
@@ -46,6 +64,10 @@ export const useAuth = () => {
     if (!user.value) return
 
     try {
+      // First check if user already has admin role in their metadata
+      if (isAdmin.value) return
+
+      // If not, check the profiles table
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
@@ -53,10 +75,21 @@ export const useAuth = () => {
         .single()
 
       if (error) throw error
-      isAdmin.value = profile?.role === 'admin'
+      
+      // If user is admin in profiles, update their metadata
+      if (profile?.role === 'admin') {
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { role: 'admin' }
+        })
+        
+        if (updateError) throw updateError
+        
+        // Refresh the session to get updated metadata
+        const { data: { session } } = await supabase.auth.getSession()
+        user.value = session?.user ?? null
+      }
     } catch (error) {
       console.error('Error loading user role:', error)
-      isAdmin.value = false
     }
   }
 
@@ -86,7 +119,6 @@ export const useAuth = () => {
       if (error) throw error
       
       user.value = null
-      isAdmin.value = false
       await router.push('/auth/login')
     } catch (error) {
       console.error('Sign out error:', error)
