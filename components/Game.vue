@@ -200,6 +200,50 @@ const currentQuestion = computed(() => questions.value[currentQuestionIndex.valu
 const isDevelopment = process.dev // Nuxt provides this
 const debugDate = ref(new Date().toISOString().split('T')[0])
 
+const { user } = useAuth()
+
+// Add new state for tracking detailed answers
+const questionSetId = ref<string | null>(null)
+const detailedAnswers = ref<Array<{
+  question_id: string,
+  selected_answer: string,
+  correct_answer: string,
+  is_correct: boolean
+}>>([])
+
+// Add new method to save game result
+const saveGameResult = async () => {
+  if (!user.value || !questionSetId.value) return
+
+  try {
+    console.log('Saving game result:', {
+      user_id: user.value.id,
+      score: score.value,
+      total_questions: questions.value.length,
+      question_set_id: questionSetId.value,
+      answers: detailedAnswers.value
+    })
+
+    const { error } = await supabase
+      .from('game_history')
+      .insert({
+        user_id: user.value.id,
+        score: score.value,
+        total_questions: questions.value.length,
+        question_set_id: questionSetId.value,
+        answers: detailedAnswers.value,
+        played_at: new Date().toISOString() // Make sure we set played_at
+      })
+
+    if (error) {
+      console.error('Error details:', error)
+      throw error
+    }
+  } catch (err) {
+    console.error('Error saving game result:', err)
+  }
+}
+
 // Methods
 const startGame = async (enableSound: boolean) => {
   console.log('Game starting with sound:', enableSound)
@@ -246,13 +290,21 @@ const selectOption = (option: string) => {
   }
 }
 
-const submitAnswer = () => {
+// Modify the submitAnswer method to save results when game is complete
+const submitAnswer = async () => {
   if (answerSubmitted.value || !selectedOption.value) return
 
   answerSubmitted.value = true
   const isCorrect = selectedOption.value === currentQuestion.value.correct_answer
   
-  // Show feedback
+  // Track detailed answer
+  detailedAnswers.value.push({
+    question_id: currentQuestion.value.id,
+    selected_answer: selectedOption.value,
+    correct_answer: currentQuestion.value.correct_answer,
+    is_correct: isCorrect
+  })
+  
   feedbackState.value = {
     isCorrect,
     show: true
@@ -262,6 +314,11 @@ const submitAnswer = () => {
     score.value++
   }
   answerResults.value.push(isCorrect)
+
+  // If this was the last question, save the game result
+  if (currentQuestionIndex.value === questions.value.length - 1) {
+    await saveGameResult()
+  }
 }
 
 const nextQuestion = () => {
@@ -331,6 +388,7 @@ const nativeShare = async () => {
   }
 }
 
+// Update restartGame to clear detailed answers
 const restartGame = () => {
   currentQuestionIndex.value = 0
   score.value = 0
@@ -339,6 +397,8 @@ const restartGame = () => {
   answerResults.value = []
   selectedOption.value = null
   feedbackState.value.show = false
+  detailedAnswers.value = []
+  questionSetId.value = null
   fetchQuestions()
 }
 
@@ -379,6 +439,9 @@ const fetchQuestions = async () => {
     console.log('Set data:', setData)
     if (setError) throw setError
     if (!setData) throw new Error('No question set found for today')
+    
+    // Store the question set id
+    questionSetId.value = setData.id
 
     // Get questions for this set
     const { data: questionData, error: questionError } = await supabase

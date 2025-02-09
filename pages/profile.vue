@@ -41,6 +41,9 @@
           </div>
         </div>
   
+        <!-- User Stats -->
+        <UserStats v-if="user" :user-id="user.id" />
+        
         <!-- Game History -->
         <GameHistory v-if="user" :user-id="user.id" />
       </div>
@@ -129,6 +132,7 @@
   <script setup lang="ts">
   import { ref, computed } from 'vue'
   import GameHistory from '~/components/GameHistory.vue'
+  import UserStats from '~/components/UserStats.vue'
   import { User } from '@supabase/supabase-js'
   
   // Composables

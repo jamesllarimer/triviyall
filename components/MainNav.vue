@@ -79,10 +79,6 @@
   const isAuthenticated = computed(() => !!user.value)
   const userInitial = computed(() => user.value?.email?.[0].toUpperCase() ?? '?')
   
-  // Debug logging
-  console.log('Current user state:', user.value)
-  console.log('Is admin:', isAdmin.value)
-  
   watch(user, (newUser) => {
     console.log('User state changed:', newUser)
   })
