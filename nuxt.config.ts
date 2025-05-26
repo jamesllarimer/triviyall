@@ -7,7 +7,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     claudeApiKey: process.env.CLAUDE_API_KEY, // Move to private server config
     public: {
-      appName: 'TriviYall',
+      appName: 'Trivi-Y\'all',
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL,
       supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY,
     }
@@ -15,7 +15,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'TriviYall',
+      title: 'Trivi-Y\'all',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' }

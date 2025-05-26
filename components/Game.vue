@@ -48,7 +48,7 @@
 
       <!-- Game Complete State -->
       <div v-if="gameComplete" class="text-center space-y-6 bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-xl">
-        <h2 class="text-2xl font-extrabold text-orange-600 font-display">OHHHHH YEAHHH! Good job hunnies!</h2>
+        <h2 class="text-2xl font-extrabold text-orange-600 font-display">{{ congratsMessage }}</h2>
         <div class="text-lg text-gray-600 font-medium">
           You got {{ score }} out of {{ questions.length }} correct!
         </div>
@@ -149,7 +149,7 @@
             @click="nextQuestion"
             class="inline-flex items-center px-4 py-2 border-2 border-white text-base font-medium rounded-full text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-all duration-200"
           >
-            Next Question
+            {{ currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next Question' }}
           </button>
         </div>
       </div>
@@ -193,13 +193,29 @@ const selectedOption = ref<string | null>(null)
 // Computed
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value] || {})
 
-// Add new state variables
-const isDevelopment = process.dev // Nuxt provides this
+const congratsMessage = computed(() => {
+  switch (score.value) {
+    case 5:
+      return "Hey hunnies genius here!"
+    case 4:
+      return "Malt stickks baby!"
+    case 3:
+      return "Do bettterrrr"
+    case 2:
+      return "Aww hunnies, try again for momma"
+    case 1:
+      return "Aww hunnies, try again for momma"
+    default:
+      return "Go ahead and lean back"
+  }
+})
+
+const isDevelopment = process.dev 
 const debugDate = ref(new Date().toISOString().split('T')[0])
 
 const { user } = useAuth()
 
-// Add new state for tracking detailed answers
+
 const questionSetId = ref<string | null>(null)
 const detailedAnswers = ref<Array<{
   question_id: string,
@@ -208,7 +224,7 @@ const detailedAnswers = ref<Array<{
   is_correct: boolean
 }>>([])
 
-// Add new method to save game result
+
 const saveGameResult = async () => {
   if (!user.value || !questionSetId.value) return
 
@@ -229,7 +245,7 @@ const saveGameResult = async () => {
         total_questions: questions.value.length,
         question_set_id: questionSetId.value,
         answers: detailedAnswers.value,
-        played_at: new Date().toISOString() // Make sure we set played_at
+        played_at: new Date().toISOString() 
       })
 
     if (error) {
@@ -241,7 +257,7 @@ const saveGameResult = async () => {
   }
 }
 
-// Methods
+
 const startGame = async (enableSound: boolean) => {
   console.log('Game starting with sound:', enableSound)
   soundEnabled.value = enableSound
@@ -287,7 +303,7 @@ const selectOption = (option: string) => {
   }
 }
 
-// Modify the submitAnswer method to save results when game is complete
+
 const submitAnswer = async () => {
   if (answerSubmitted.value || !selectedOption.value) return
 
@@ -342,12 +358,12 @@ const generateShareText = () => {
     .join('')
   
   const scoreMsg = score.value === questions.value.length 
-    ? "Totally groovy, perfect score!" 
-    : `${score.value}/${questions.value.length} right on!`
+    ? "Hey hunnies genius here!" 
+    : `${score.value}/${questions.value.length} good effort but do betterrrr!`
     
   const baseUrl = window.location.origin
   
-  return `Hey hunnies! 💫\nCheck out my TriviYa'll score for ${dateStr}!\n\n${scoreMsg}\n${results}\n\n🎲 Come play with us at ${baseUrl}`
+  return `Check out my Trivi-Y'all score for ${dateStr}!\n\n${scoreMsg}\n${results}\n\n🎲 Come play with us at ${baseUrl}`
 }
 
 const copyToClipboard = async () => {
@@ -369,7 +385,7 @@ const copyToClipboard = async () => {
 const nativeShare = async () => {
   const text = generateShareText()
   const shareData = {
-    title: 'TriviYall Results',
+    title: 'Trivi-Y\'all Results',
     text: text,
     url: window.location.origin
   }
@@ -389,7 +405,7 @@ const nativeShare = async () => {
   }
 }
 
-// Update restartGame to clear detailed answers
+
 const restartGame = () => {
   currentQuestionIndex.value = 0
   score.value = 0
@@ -403,7 +419,7 @@ const restartGame = () => {
   fetchQuestions()
 }
 
-// Modify fetchQuestions to use debug date when available
+
 const fetchQuestions = async () => {
   try {
     console.log('Fetching questions...')
@@ -473,8 +489,9 @@ const fetchQuestions = async () => {
   }
 }
 
-// Check if the Web Share API is available
+
 onMounted(() => {
   canNativeShare.value = !!navigator.share
 })
+
 </script>

@@ -2,7 +2,7 @@
 <template>
     <div class="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col items-center justify-center p-4">
       <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">Sign In to TriviYall</h2>
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Sign In to Trivi-Y'all</h2>
         
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div>

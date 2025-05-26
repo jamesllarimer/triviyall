@@ -5,7 +5,7 @@
         <div class="text-center mb-8">
           <h2 class="text-2xl font-bold text-gray-900">Create Your Account</h2>
           <p class="mt-2 text-sm text-gray-600">
-            Join TriviYall and start testing your knowledge
+            Join Trivi-Y'all and start testing your knowledge
           </p>
         </div>
   
