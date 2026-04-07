@@ -113,6 +113,22 @@ export const useAuth = () => {
     }
   }
 
+  const signUp = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password
+      })
+
+      if (error) throw error
+
+      return { error: null, user: data.user }
+    } catch (error) {
+      console.error('Sign up error:', error)
+      return { error }
+    }
+  }
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut()
@@ -131,6 +147,7 @@ export const useAuth = () => {
     isAdmin,
     loading,
     signIn,
+    signUp,
     signOut,
     initAuth
   }
