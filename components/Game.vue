@@ -386,8 +386,7 @@ const nativeShare = async () => {
   const text = generateShareText()
   const shareData = {
     title: 'Trivi-Y\'all Results',
-    text: text,
-    url: window.location.origin
+    text: text
   }
 
   try {
