@@ -8,8 +8,8 @@ export default defineNuxtConfig({
     claudeApiKey: process.env.CLAUDE_API_KEY, // Move to private server config
     public: {
       appName: 'Trivi-Y\'all',
-      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL,
-      supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY,
+      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_DATABASE_URL,
+      supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY,
     }
   },
 
