@@ -12,6 +12,13 @@
       </button>
       
       <NuxtLink
+        to="/fmk"
+        class="block mt-4 text-base text-white hover:text-orange-200 transition-colors duration-200"
+      >
+        or answer today's FMK
+      </NuxtLink>
+
+      <NuxtLink
         to="/dashboard"
         class="block mt-4 text-sm text-white hover:text-orange-200 transition-colors duration-200"
       >

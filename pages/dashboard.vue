@@ -132,6 +132,9 @@
                   <p class="text-sm font-medium text-gray-900">
                     Set {{ set.id.slice(0, 8) }}
                   </p>
+                  <p class="text-xs mt-1" :class="(set as any).week ? 'text-indigo-600 font-medium' : 'text-gray-400'">
+                    {{ (set as any).week ? `Week of ${formatDate((set as any).week.start_date)} · Day ${(set as any).day_number}` : 'Unassigned' }}
+                  </p>
                   <div class="mt-1 text-sm text-gray-500">
                     <p>Questions:</p>
                     <ul class="list-disc pl-5">
@@ -227,6 +230,48 @@
               </div>
             </div>
           </div>
+          <!-- F/M/K Prompts -->
+          <div v-if="currentTab === 'fmk'" class="space-y-4">
+            <div class="flex justify-between items-center">
+              <h2 class="text-lg font-medium text-gray-900">F/M/K Prompts</h2>
+              <button @click="showFMKModal = true"
+                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                New Prompt
+              </button>
+            </div>
+
+            <table class="min-w-full divide-y divide-gray-300">
+              <thead>
+                <tr>
+                  <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
+                  <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Option A</th>
+                  <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Option B</th>
+                  <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Option C</th>
+                  <th class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 bg-white">
+                <tr v-for="prompt in fmkPrompts" :key="prompt.id">
+                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                    <div class="flex items-center space-x-2">
+                      <span>{{ formatDate(prompt.scheduled_date) }}</span>
+                      <span :class="fmkDateStatus(prompt.scheduled_date).color" class="px-2 py-0.5 rounded-full text-xs font-medium">
+                        {{ fmkDateStatus(prompt.scheduled_date).text }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-3 py-4 text-sm text-gray-500">{{ prompt.option_a }}</td>
+                  <td class="px-3 py-4 text-sm text-gray-500">{{ prompt.option_b }}</td>
+                  <td class="px-3 py-4 text-sm text-gray-500">{{ prompt.option_c }}</td>
+                  <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                    <button @click="editFMKPrompt(prompt)" class="text-indigo-600 hover:text-indigo-900">Edit</button>
+                    <button @click="deleteFMKPrompt(prompt.id)" class="ml-4 text-red-600 hover:text-red-900">Delete</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
         </div>
       </div>
     </div>
@@ -239,6 +284,8 @@
     <CategoryModal v-model="showAddCategoryModal" :editing-category="editingCategory" @save="saveCategory" />
     <WeekModal v-model="showAddWeekModal" :editing-week="editingWeek" :question-sets="questionSets" :questions="questions"
       @save="saveWeek" />
+    <FMKModal v-model="showFMKModal" :editing-prompt="editingFMK" @save="saveFMKPrompt"
+      @update:model-value="val => { showFMKModal = val; if (!val) editingFMK = null }" />
   </div>
 </template>
 
@@ -249,6 +296,7 @@ import QuestionModal from '../components/QuestionModal.vue'
 import SetModal from '../components/SetModal.vue'
 import CategoryModal from '../components/CategoryModal.vue'
 import WeekModal from '../components/WeekModal.vue'
+import FMKModal from '../components/FMKModal.vue'
 
 definePageMeta({
     middleware: ['admin']
@@ -260,6 +308,7 @@ const showAddQuestionModal = ref(false)
 const showAddSetModal = ref(false)
 const showAddCategoryModal = ref(false)
 const showAddWeekModal = ref(false)
+const showFMKModal = ref(false)
 
 const stats = ref({
   totalQuestions: 0,
@@ -272,12 +321,14 @@ const editingQuestion = ref(null)
 const editingSet = ref(null)
 const editingCategory = ref(null)
 const editingWeek = ref(null)
+const editingFMK = ref(null)
 
 // Data
 const questions = ref([])
 const categories = ref([])
 const questionSets = ref([])
 const weeks = ref([])
+const fmkPrompts = ref<any[]>([])
 
 // Constants
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -293,7 +344,8 @@ const tabs = [
   { id: 'weeks', name: 'Weeks' },
   { id: 'questions', name: 'Questions' },
   { id: 'sets', name: 'Question Sets' },
-  { id: 'categories', name: 'Categories' }
+  { id: 'categories', name: 'Categories' },
+  { id: 'fmk', name: 'F/M/K' }
 ]
 
 // Computed
@@ -774,6 +826,14 @@ const fetchData = async () => {
     if (setsError) throw setsError
     questionSets.value = setsData || []
 
+    // Fetch FMK prompts
+    const { data: fmkData, error: fmkError } = await supabase
+      .from('fmk_prompts')
+      .select('*')
+      .order('scheduled_date', { ascending: false })
+    if (fmkError) throw fmkError
+    fmkPrompts.value = fmkData || []
+
     // Update stats
     stats.value = {
       totalQuestions: questions.value.length,
@@ -785,6 +845,55 @@ const fetchData = async () => {
     console.error('Error fetching data:', error)
     alert('Error fetching data')
   }
+}
+
+const editFMKPrompt = (prompt: any) => {
+  editingFMK.value = prompt
+  showFMKModal.value = true
+}
+
+const saveFMKPrompt = async (formData: any) => {
+  const supabase = useSupabase()
+  try {
+    if (editingFMK.value) {
+      const { error } = await supabase
+        .from('fmk_prompts')
+        .update(formData)
+        .eq('id', editingFMK.value.id)
+      if (error) throw error
+    } else {
+      const { error } = await supabase
+        .from('fmk_prompts')
+        .insert(formData)
+      if (error) throw error
+    }
+    editingFMK.value = null
+    showFMKModal.value = false
+    await fetchData()
+  } catch (error) {
+    console.error('Error saving FMK prompt:', error)
+    alert('Error saving FMK prompt')
+  }
+}
+
+const deleteFMKPrompt = async (id: string) => {
+  const supabase = useSupabase()
+  if (!confirm('Are you sure you want to delete this F/M/K prompt?')) return
+  try {
+    const { error } = await supabase.from('fmk_prompts').delete().eq('id', id)
+    if (error) throw error
+    fmkPrompts.value = fmkPrompts.value.filter((p: any) => p.id !== id)
+  } catch (error) {
+    console.error('Error deleting FMK prompt:', error)
+    alert('Error deleting FMK prompt')
+  }
+}
+
+const fmkDateStatus = (scheduledDate: string) => {
+  const today = new Date().toISOString().split('T')[0]
+  if (scheduledDate === today) return { text: 'Today', color: 'bg-indigo-100 text-indigo-700' }
+  if (scheduledDate > today) return { text: 'Upcoming', color: 'bg-green-100 text-green-700' }
+  return { text: 'Past', color: 'bg-gray-100 text-gray-500' }
 }
 
 // Lifecycle

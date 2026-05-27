@@ -10,12 +10,59 @@
             <h3 class="text-lg font-medium leading-6 text-gray-900">
               {{ isEditing ? 'Edit Question Set' : 'Create New Question Set' }}
             </h3>
-            
+            <p v-if="isEditing" class="mt-1 text-sm" :class="editingSet?.week ? 'text-indigo-600 font-medium' : 'text-gray-400'">
+              {{ editingSet?.week ? `Week of ${formatDate(editingSet.week.start_date)} · Day ${editingSet.day_number}` : 'Unassigned' }}
+            </p>
+
             <form @submit.prevent="handleSubmit" class="mt-4 space-y-6">
-              <!-- Question Selection -->
+
+              <!-- Section 1: Assigned Questions -->
+              <div v-if="assignedQuestionObjects.length > 0">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="text-base font-medium text-gray-900">
+                    Assigned Questions ({{ assignedQuestionObjects.length }}/5)
+                  </h4>
+                </div>
+                <div class="border rounded-lg overflow-hidden">
+                  <table class="min-w-full divide-y divide-gray-300">
+                    <thead class="bg-indigo-50">
+                      <tr>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Question</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Last Used</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Remove</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 bg-white">
+                      <tr v-for="question in assignedQuestionObjects" :key="question.id" class="bg-indigo-50">
+                        <td class="px-3 py-4 text-sm text-gray-900">{{ question.question }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {{ getCategoryName(question.category_id) }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {{ question.last_used_date ? formatDate(question.last_used_date) : 'Never' }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm">
+                          <button
+                            type="button"
+                            @click="removeQuestion(question.id)"
+                            class="text-red-600 hover:text-red-800 font-medium"
+                          >
+                            ×
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Section 2: Add Questions -->
               <div>
                 <div class="flex justify-between items-center mb-4">
-                  <h4 class="text-base font-medium text-gray-900">Select Questions (5 required)</h4>
+                  <h4 class="text-base font-medium text-gray-900">
+                    {{ assignedQuestionObjects.length > 0 ? 'Add Questions' : 'Select Questions (5 required)' }}
+                  </h4>
                   <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-2">
                       <label class="text-sm text-gray-700">Filter by Category:</label>
@@ -54,16 +101,13 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
                       <tr v-for="question in filteredQuestions" :key="question.id"
-                          :class="{ 
-                            'bg-indigo-50': selectedQuestions.includes(question.id),
-                            'opacity-50': !question.is_available
-                          }">
+                          :class="{ 'opacity-50': !question.is_available }">
                         <td class="whitespace-nowrap px-3 py-4 text-sm">
                           <input
                             type="checkbox"
                             :value="question.id"
                             v-model="selectedQuestions"
-                            :disabled="(selectedQuestions.length >= 5 && !selectedQuestions.includes(question.id)) || !question.is_available"
+                            :disabled="selectedQuestions.length >= 5 || !question.is_available"
                             class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                           />
                         </td>
@@ -78,6 +122,11 @@
                         </td>
                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {{ question.last_used_date ? formatDate(question.last_used_date) : 'Never' }}
+                        </td>
+                      </tr>
+                      <tr v-if="filteredQuestions.length === 0">
+                        <td colspan="4" class="px-3 py-6 text-sm text-center text-gray-500">
+                          No questions available with current filters.
                         </td>
                       </tr>
                     </tbody>
@@ -128,14 +177,16 @@ const emit = defineEmits(['update:modelValue', 'save'])
 const isEditing = computed(() => !!props.editingSet)
 const selectedCategory = ref('')
 const selectedQuestions = ref<string[]>([])
-const availabilityFilter = ref('available')  // Changed from 'all' to 'available'
+const availabilityFilter = ref('available')
 
-const isValid = computed(() => {
-  return selectedQuestions.value.length === 5
-})
+const isValid = computed(() => selectedQuestions.value.length === 5)
+
+const assignedQuestionObjects = computed(() =>
+  props.questions.filter(q => selectedQuestions.value.includes(q.id))
+)
 
 const filteredQuestions = computed(() => {
-  let filtered = props.questions
+  let filtered = props.questions.filter(q => !selectedQuestions.value.includes(q.id))
   if (selectedCategory.value) {
     filtered = filtered.filter(q => q.category_id === selectedCategory.value)
   }
@@ -144,6 +195,10 @@ const filteredQuestions = computed(() => {
   }
   return filtered
 })
+
+const removeQuestion = (id: string) => {
+  selectedQuestions.value = selectedQuestions.value.filter(qId => qId !== id)
+}
 
 const getCategoryName = (categoryId: string) => {
   const category = props.categories.find(c => c.id === categoryId)
@@ -160,7 +215,6 @@ const formatDate = (date: string) => {
 
 watchEffect(() => {
   if (props.editingSet) {
-    // Get questions assigned to this set
     selectedQuestions.value = props.questions
       .filter(q => q.set_id === props.editingSet.id)
       .map(q => q.id)
