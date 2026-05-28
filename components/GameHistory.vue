@@ -82,8 +82,19 @@ const props = defineProps<{
 }>()
 
 const supabase = useSupabase()
-const stats = ref<any>({})
 const games = ref<any[]>([])
+
+const stats = computed(() => {
+  if (!games.value.length) return { games_played: 0, average_score: null, best_score: 0, total_score: 0 }
+  const scores = games.value.map(g => g.score)
+  const total = scores.reduce((sum: number, s: number) => sum + s, 0)
+  return {
+    games_played: games.value.length,
+    average_score: total / games.value.length,
+    best_score: Math.max(...scores),
+    total_score: total
+  }
+})
 
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString('en-US', {
@@ -106,23 +117,9 @@ const getAnswerPattern = (answers: any) => {
   if (!answers) return []
   // Make sure we're working with an array
   const answersArray = Array.isArray(answers) ? answers : JSON.parse(answers)
-  return answersArray.map(a => ({
+  return answersArray.map((a: { is_correct: boolean }) => ({
     is_correct: a.is_correct
   }))
-}
-
-const fetchGameStats = async () => {
-  try {
-    const { data, error } = await supabase
-      .rpc('get_user_stats', {
-        user_id_param: props.userId
-      })
-
-    if (error) throw error
-    stats.value = data[0] || {}
-  } catch (error) {
-    console.error('Error fetching game stats:', error)
-  }
 }
 
 const fetchGames = async () => {
@@ -143,15 +140,13 @@ const fetchGames = async () => {
 }
 
 // Refresh data periodically
-let refreshInterval: any
+let refreshInterval: ReturnType<typeof setInterval>
 
 onMounted(() => {
-  fetchGameStats()
   fetchGames()
-  
+
   // Refresh every 5 minutes
   refreshInterval = setInterval(() => {
-    fetchGameStats()
     fetchGames()
   }, 5 * 60 * 1000)
 })

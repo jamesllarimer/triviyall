@@ -264,7 +264,8 @@
                   <td class="px-3 py-4 text-sm text-gray-500">{{ prompt.option_b }}</td>
                   <td class="px-3 py-4 text-sm text-gray-500">{{ prompt.option_c }}</td>
                   <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <button @click="editFMKPrompt(prompt)" class="text-indigo-600 hover:text-indigo-900">Edit</button>
+                    <button @click="viewingFMK = prompt; showFMKResultsModal = true" class="text-green-600 hover:text-green-900">Results</button>
+                    <button @click="editFMKPrompt(prompt)" class="ml-4 text-indigo-600 hover:text-indigo-900">Edit</button>
                     <button @click="deleteFMKPrompt(prompt.id)" class="ml-4 text-red-600 hover:text-red-900">Delete</button>
                   </td>
                 </tr>
@@ -286,6 +287,8 @@
       @save="saveWeek" />
     <FMKModal v-model="showFMKModal" :editing-prompt="editingFMK" @save="saveFMKPrompt"
       @update:model-value="val => { showFMKModal = val; if (!val) editingFMK = null }" />
+    <FMKResultsModal v-model="showFMKResultsModal" :prompt="viewingFMK"
+      @update:model-value="val => { showFMKResultsModal = val; if (!val) viewingFMK = null }" />
   </div>
 </template>
 
@@ -297,6 +300,8 @@ import SetModal from '../components/SetModal.vue'
 import CategoryModal from '../components/CategoryModal.vue'
 import WeekModal from '../components/WeekModal.vue'
 import FMKModal from '../components/FMKModal.vue'
+import FMKResultsModal from '../components/FMKResultsModal.vue'
+import type { Question, Category, QuestionSet, Week, FMKPrompt } from '~/types'
 
 definePageMeta({
     middleware: ['admin']
@@ -309,6 +314,8 @@ const showAddSetModal = ref(false)
 const showAddCategoryModal = ref(false)
 const showAddWeekModal = ref(false)
 const showFMKModal = ref(false)
+const showFMKResultsModal = ref(false)
+const viewingFMK = ref<FMKPrompt | null>(null)
 
 const stats = ref({
   totalQuestions: 0,
@@ -317,18 +324,18 @@ const stats = ref({
   totalWeeks: 0
 })
 
-const editingQuestion = ref(null)
-const editingSet = ref(null)
-const editingCategory = ref(null)
-const editingWeek = ref(null)
-const editingFMK = ref(null)
+const editingQuestion = ref<Question | null>(null)
+const editingSet = ref<QuestionSet | null>(null)
+const editingCategory = ref<Category | null>(null)
+const editingWeek = ref<Week | null>(null)
+const editingFMK = ref<FMKPrompt | null>(null)
 
 // Data
-const questions = ref([])
-const categories = ref([])
-const questionSets = ref([])
-const weeks = ref([])
-const fmkPrompts = ref<any[]>([])
+const questions = ref<Question[]>([])
+const categories = ref<Category[]>([])
+const questionSets = ref<QuestionSet[]>([])
+const weeks = ref<Week[]>([])
+const fmkPrompts = ref<FMKPrompt[]>([])
 
 // Constants
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -365,9 +372,20 @@ const filteredQuestions = computed(() => {
   return filtered
 })
 
+// Returns today's date as YYYY-MM-DD in local time (not UTC)
+const localToday = () => {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 // Methods
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('en-US', {
+  // Parse date-only strings (YYYY-MM-DD) as local time to avoid UTC offset shifting the day
+  const [year, month, day] = date.split('T')[0].split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -388,22 +406,22 @@ const getDaySetStatus = (weekId: string, dayNumber: number) => {
 }
 
 // Edit Actions
-const editQuestion = (question: any) => {
+const editQuestion = (question: Question) => {
   editingQuestion.value = question
   showAddQuestionModal.value = true
 }
 
-const editSet = (set: any) => {
+const editSet = (set: QuestionSet) => {
   editingSet.value = set
   showAddSetModal.value = true
 }
 
-const editCategory = (category: any) => {
+const editCategory = (category: Category) => {
   editingCategory.value = category
   showAddCategoryModal.value = true
 }
 
-const editWeek = (week: any) => {
+const editWeek = (week: Week) => {
   editingWeek.value = week
   showAddWeekModal.value = true
 }
@@ -425,7 +443,7 @@ const fetchQuestions = async () => {
   }
 }
 
-const saveQuestion = async (questionData: any) => {
+const saveQuestion = async (questionData: Partial<Question>) => {
   const supabase = useSupabase()
 
   try {
@@ -440,7 +458,7 @@ const saveQuestion = async (questionData: any) => {
       if (error) throw error
 
       // Update local state
-      const index = questions.value.findIndex(q => q.id === editingQuestion.value.id)
+      const index = questions.value.findIndex(q => q.id === editingQuestion.value!.id)
       if (index !== -1) {
         questions.value[index] = data[0]
       }
@@ -505,7 +523,7 @@ const saveSet = async (setData: any) => {
     if (updateError) throw updateError
 
     // Mark questions as used
-    const today = new Date().toISOString().split('T')[0]
+    const today = localToday()
     for (const questionId of questionIds) {
       const { error: usageError } = await supabase.rpc(
         'mark_question_used',
@@ -528,7 +546,7 @@ const saveSet = async (setData: any) => {
   }
 }
 
-const saveCategory = async (categoryData: any) => {
+const saveCategory = async (categoryData: Partial<Category>) => {
   const supabase = useSupabase()
 
   try {
@@ -543,7 +561,7 @@ const saveCategory = async (categoryData: any) => {
       if (error) throw error
 
       // Update local state
-      const index = categories.value.findIndex(c => c.id === editingCategory.value.id)
+      const index = categories.value.findIndex(c => c.id === editingCategory.value!.id)
       if (index !== -1) {
         categories.value[index] = data[0]
       }
@@ -638,7 +656,7 @@ const saveWeek = async (weekData: any) => {
           if (updateError) throw updateError
 
           // Mark questions as used
-          const today = new Date().toISOString().split('T')[0]
+          const today = localToday()
           for (const question of shuffled) {
             const { error: usageError } = await supabase.rpc(
               'mark_question_used',
@@ -847,12 +865,12 @@ const fetchData = async () => {
   }
 }
 
-const editFMKPrompt = (prompt: any) => {
+const editFMKPrompt = (prompt: FMKPrompt) => {
   editingFMK.value = prompt
   showFMKModal.value = true
 }
 
-const saveFMKPrompt = async (formData: any) => {
+const saveFMKPrompt = async (formData: Omit<FMKPrompt, 'id' | 'created_at'>) => {
   const supabase = useSupabase()
   try {
     if (editingFMK.value) {
@@ -890,7 +908,7 @@ const deleteFMKPrompt = async (id: string) => {
 }
 
 const fmkDateStatus = (scheduledDate: string) => {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localToday()
   if (scheduledDate === today) return { text: 'Today', color: 'bg-indigo-100 text-indigo-700' }
   if (scheduledDate > today) return { text: 'Upcoming', color: 'bg-green-100 text-green-700' }
   return { text: 'Past', color: 'bg-gray-100 text-gray-500' }

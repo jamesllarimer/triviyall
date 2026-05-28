@@ -3,7 +3,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   
   // Wait for auth state to load
   if (loading.value) {
-    await until(loading).toBe(false)
+    await useUntil(loading).toBe(false)
   }
   
   // Redirect to login if not authenticated

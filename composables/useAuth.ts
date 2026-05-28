@@ -1,5 +1,5 @@
 // composables/useAuth.ts
-import { User } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
 
 export const useAuthStore = () => {
   const user = useState<User | null>('user', () => null)
@@ -51,8 +51,6 @@ export const useAuth = () => {
         
         if (user.value) {
           await loadUserRole()
-        } else {
-          isAdmin.value = false
         }
       })
     } finally {
@@ -142,6 +140,17 @@ export const useAuth = () => {
     }
   }
 
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      return { error: null }
+    } catch (error) {
+      console.error('Update password error:', error)
+      return { error }
+    }
+  }
+
   return {
     user,
     isAdmin,
@@ -149,6 +158,7 @@ export const useAuth = () => {
     signIn,
     signUp,
     signOut,
-    initAuth
+    initAuth,
+    updatePassword
   }
 }

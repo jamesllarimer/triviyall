@@ -11,10 +11,5 @@
 </template>
 
 <script setup lang="ts">
-const { loading, initAuth } = useAuth()
-
-// Initialize authentication when the app starts
-onMounted(async () => {
-  await initAuth()
-})
+const { loading } = useAuth()
 </script>

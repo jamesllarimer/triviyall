@@ -133,8 +133,6 @@
   import { ref, computed } from 'vue'
   import GameHistory from '~/components/GameHistory.vue'
   import UserStats from '~/components/UserStats.vue'
-  import { User } from '@supabase/supabase-js'
-  
   // Composables
   const { user, signOut, updatePassword } = useAuth()
   const supabase = useSupabase()

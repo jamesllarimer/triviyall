@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
 
     console.log('Claude API response:', response)
     return response
-  } catch (error) {
+  } catch (error: any) {
     console.error('Detailed Claude API error:', error)
     throw createError({
       statusCode: error.status || 500,

@@ -184,10 +184,10 @@
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Check if we have a valid recovery session
-  const session = supabase.auth.session()
-  if (!session?.access_token) {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session?.access_token) {
     router.push('/auth/login')
   }
 })

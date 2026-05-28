@@ -396,7 +396,7 @@ const nativeShare = async () => {
     setTimeout(() => {
       showShareSuccess.value = false
     }, 2000)
-  } catch (err) {
+  } catch (err: any) {
     if (err.name !== 'AbortError') {
       console.error('Error sharing:', err)
       await copyToClipboard()
