@@ -79,7 +79,7 @@
     
     console.log('Login successful, user:', signedInUser)
     await router.push('/')
-  } catch (err) {
+  } catch (err: any) {
     console.error('Login error:', err)
     error.value = err.message
   } finally {

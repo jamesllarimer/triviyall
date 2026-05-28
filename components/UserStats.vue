@@ -9,33 +9,23 @@
       <dl>
         <div class="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
           <dt class="text-sm font-medium text-gray-500">Games Played</dt>
-          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-            {{ stats?.games_played || 0 }}
-          </dd>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ stats.gamesPlayed }}</dd>
         </div>
         <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
           <dt class="text-sm font-medium text-gray-500">Average Score</dt>
-          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-            {{ formatScore(stats?.average_score) }}/5
-          </dd>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ stats.averageScore }}/5</dd>
         </div>
         <div class="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
           <dt class="text-sm font-medium text-gray-500">Best Score</dt>
-          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-            {{ stats?.best_score || 0 }}/5
-          </dd>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ stats.bestScore }}/5</dd>
         </div>
         <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-          <dt class="text-sm font-medium text-gray-500">Total Score</dt>
-          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-            {{ stats?.total_score || 0 }}
-          </dd>
+          <dt class="text-sm font-medium text-gray-500">Total Points</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ stats.totalScore }}</dd>
         </div>
         <div class="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
           <dt class="text-sm font-medium text-gray-500">Last Played</dt>
-          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-            {{ formatDate(stats?.last_played) || 'Never' }}
-          </dd>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ stats.lastPlayed }}</dd>
         </div>
       </dl>
     </div>
@@ -43,44 +33,48 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  userId: string
-}>()
+const props = defineProps<{ userId: string }>()
 
 const supabase = useSupabase()
-const stats = ref<any>(null)
 
-const formatDate = (date: string | null) => {
-  if (!date) return null
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
-const formatScore = (score: number | null) => {
-  if (score === null) return '0'
-  return Number(score).toFixed(1)
-}
+const stats = ref({
+  gamesPlayed: 0,
+  averageScore: '0.0',
+  bestScore: 0,
+  totalScore: 0,
+  lastPlayed: 'Never'
+})
 
 const fetchStats = async () => {
   try {
-    console.log('Fetching stats for user:', props.userId)
     const { data, error } = await supabase
-      .rpc('get_user_stats', {
-        user_id_param: props.userId
-      })
+      .from('game_history')
+      .select('score, played_at')
+      .eq('user_id', props.userId)
 
     if (error) throw error
-    console.log('Received stats:', data)
-    stats.value = data[0] // Function returns array with single row
+    if (!data || data.length === 0) return
+
+    const scores = data.map(g => g.score)
+    const total = scores.reduce((sum, s) => sum + s, 0)
+    const lastDate = data
+      .map(g => g.played_at)
+      .sort()
+      .at(-1)
+
+    stats.value = {
+      gamesPlayed: data.length,
+      averageScore: (total / data.length).toFixed(1),
+      bestScore: Math.max(...scores),
+      totalScore: total,
+      lastPlayed: lastDate
+        ? new Date(lastDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : 'Never'
+    }
   } catch (err) {
     console.error('Error fetching user stats:', err)
   }
 }
 
-onMounted(() => {
-  fetchStats()
-})
+onMounted(fetchStats)
 </script>
