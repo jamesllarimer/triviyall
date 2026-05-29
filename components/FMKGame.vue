@@ -127,7 +127,7 @@ const assignButtonActive = (label: Assignment) => {
 }
 
 const submit = async () => {
-  if (!allAssigned.value || submitting.value || !user.value) return
+  if (!allAssigned.value || submitting.value) return
   submitting.value = true
 
   const findOption = (label: Assignment): string => {
@@ -144,7 +144,7 @@ const submit = async () => {
   try {
     const { error } = await supabase.from('fmk_responses').insert({
       prompt_id: props.prompt.id,
-      user_id: user.value.id,
+      user_id: user.value?.id ?? null,
       ...choices
     })
     if (error) throw error

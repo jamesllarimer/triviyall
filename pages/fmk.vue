@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({})
 
 const supabase = useSupabase()
 const { user } = useAuth()
